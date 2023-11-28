@@ -20,7 +20,7 @@ def filter_on_regex(strings, pattern: re.Pattern):
     for string in strings:
         match = pattern.match(string)
         if match:
-            yield match
+            yield string
 
 
 def filter_active_bots():
@@ -34,11 +34,11 @@ def filter_inactive_bots():
 
 
 def bot_is_active(name):
-    return any(bot.group(1) == name for bot in filter_active_bots())
+    return any(bot == name for bot in filter_active_bots())
 
 
 def bot_is_inactive(name):
-    return any(bot.group(1) == name for bot in filter_inactive_bots())
+    return any(bot == name for bot in filter_inactive_bots())
 
 
 def activate_bot(name):
