@@ -29,7 +29,7 @@ def filter_active_bots():
 
 
 def filter_inactive_bots():
-    pattern = re.compile(BotState.ACTIVE)
+    pattern = re.compile(BotState.INACTIVE)
     return filter_on_regex(get_bot_files(), pattern)
 
 
