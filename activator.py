@@ -19,8 +19,8 @@ def get_bot_files():
 def filter_on_regex(strings, pattern: re.Pattern):
     for string in strings:
         match = pattern.match(string)
-        if match:
-            yield string
+        if match is not None:
+            yield match.group(1)
 
 
 def filter_active_bots():
