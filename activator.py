@@ -1,90 +1,87 @@
 from enum import StrEnum
 import os
-import re
+import pathlib
 
 
-class BotState(StrEnum):
-    ACTIVE = r"(.*)\.py$"
-    INACTIVE = r"(.*)\.py_$"
+class FileExt(StrEnum):
+    ACTIVE = ".py"
+    INACTIVE = ".py_"
 
 
-class Directories(StrEnum):
-    BOTS = "bots"
+class BotFile:
+    def __init__(self, path: pathlib.Path):
+        self.path = path
+        name, ext = os.path.splitext(os.path.basename(path))
+        self.name = name
+        if ext not in FileExt:
+            raise ValueError(f"{path} doesn't have a valid file extension")
+
+    def activate(self):
+        if self.is_active():
+            raise ValueError(f"{self.name} is already active")
+
+        new_path = self.path.with_suffix(FileExt.ACTIVE)
+        self.path.rename(new_path)
+        self.path = new_path
+
+    def deactivate(self):
+        if not self.is_active():
+            raise ValueError(f"{self.name} is already inactive")
+
+        new_path = self.path.with_suffix(FileExt.INACTIVE)
+        self.path.rename(new_path)
+        self.path = new_path
+
+    def is_active(self):
+        _, ext = os.path.splitext(self.path)
+        return ext == FileExt.ACTIVE
 
 
-def get_bot_files():
-    return os.listdir(Directories.BOTS)
+class BotsDir:
+    def __init__(self, dir_name):
+        dir_path = pathlib.Path(dir_name)
+        self.bot_files: dict[str, BotFile] = {}
+        python_files = []
+        for ext in FileExt:
+            for python_file in dir_path.glob(f"*{ext}"):
+                python_files.append(python_file)
 
+        for python_file in python_files:
+            bot_file = BotFile(python_file)
+            self.bot_files[bot_file.name] = bot_file
 
-def filter_on_regex(strings, pattern: re.Pattern):
-    for string in strings:
-        match = pattern.match(string)
-        if match is not None:
-            yield match.group(1)
+    def activate_bot(self, bot_name):
+        self.bot_files[bot_name].activate()
 
+    def deactivate_bot(self, bot_name):
+        self.bot_files[bot_name].deactivate()
 
-def filter_active_bots():
-    pattern = re.compile(BotState.ACTIVE)
-    return filter_on_regex(get_bot_files(), pattern)
+    def get_active_bots(self):
+        active_bots = []
+        for name, bot_file in self.bot_files.items():
+            if bot_file.is_active():
+                active_bots.append(name)
 
+        return active_bots
 
-def filter_inactive_bots():
-    pattern = re.compile(BotState.INACTIVE)
-    return filter_on_regex(get_bot_files(), pattern)
+    def get_inactive_bots(self):
+        inactive_bots = []
+        for name, bot_file in self.bot_files.items():
+            if not bot_file.is_active():
+                inactive_bots.append(name)
 
+        return inactive_bots
 
-def bot_is_active(name):
-    return any(bot == name for bot in filter_active_bots())
+    def activate_bots(self, bots):
+        for bot in bots:
+            self.activate_bot(bot)
 
+    def deactivate_bots(self, bots):
+        for bot in bots:
+            self.deactivate_bot(bot)
 
-def bot_is_inactive(name):
-    return any(bot == name for bot in filter_inactive_bots())
+    def activate_all_bots(self):
+        self.activate_bots(self.get_inactive_bots())
 
-
-def change_file_extension(file, new_ext):
-    old_path = os.path.abspath(file)
-    name, _ = os.path.splitext(old_path)
-    new_path = os.path.join(os.path.dirname(old_path), f"{name}.{new_ext}")
-    os.rename(old_path, new_path)
-
-
-def activate_bot(name):
-    if bot_is_active(name):
-        raise ValueError(f"{name} is already active")
-
-    if bot_is_inactive(name):
-        active_name = f"{name}.py"
-        inactive_name = f"{name}.py_"
-        os.rename(inactive_name, active_name)
-
-    raise ValueError(f"Bot with name: {name} does not exist")
-
-
-def deactivate_bot(name):
-    if bot_is_inactive(name):
-        raise ValueError(f"{name} is already inactive")
-
-    if bot_is_active(name):
-        active_name = f"{name}.py"
-        inactive_name = f"{name}.py_"
-        os.rename(active_name, inactive_name)
-
-    raise ValueError(f"Bot with name: {name} does not exist")
-
-
-def activate_bots(bots):
-    for bot in bots:
-        activate_bot(bot)
-
-
-def deactivate_bots(bots):
-    for bot in bots:
-        deactivate_bot(bot)
-
-
-def activate_all_bots():
-    activate_bots(filter_inactive_bots())
-
-
-def deactivate_all_bots():
-    deactivate_bots(filter_active_bots())
+    def deactivate_all_bots(self):
+        self.deactivate_bots(self.get_active_bots())
