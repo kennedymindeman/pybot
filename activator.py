@@ -50,7 +50,7 @@ def activate_bot(name):
         inactive_name = f"{name}.py_"
         os.rename(inactive_name, active_name)
 
-    raise ValueError(f"{name} does not exist")
+    raise ValueError(f"Bot with name: {name} does not exist")
 
 
 def deactivate_bot(name):
@@ -62,7 +62,7 @@ def deactivate_bot(name):
         inactive_name = f"{name}.py_"
         os.rename(active_name, inactive_name)
 
-    raise ValueError(f"{name} does not exist")
+    raise ValueError(f"Bot with name: {name} does not exist")
 
 
 def activate_bots(bots):
