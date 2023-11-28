@@ -63,3 +63,21 @@ def deactivate_bot(name):
         os.rename(active_name, inactive_name)
 
     raise ValueError(f"{name} does not exist")
+
+
+def activate_bots(bots):
+    for bot in bots:
+        activate_bot(bot)
+
+
+def deactivate_bots(bots):
+    for bot in bots:
+        deactivate_bot(bot)
+
+
+def activate_all_bots():
+    activate_bots(filter_inactive_bots())
+
+
+def deactivate_all_bots():
+    deactivate_bots(filter_active_bots())
