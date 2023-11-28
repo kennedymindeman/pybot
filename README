@@ -1,0 +1,246 @@
+
+PYBOTS
+
+Pybots is a programming game inspired by CROBOTS.
+Basically you have to write a python class
+that will control a pybot which will fight with other pybots. You can give
+your pybot its own hardware and its own action algorithm, then you can choose
+your competitors and fight one or many times in different sized arenas.
+
+You can "program" your pybot by writing a function that tells him how to act
+and will be called periodically by the engine, while pybot's hardware is made
+by just setting some class attributes in your python code.
+You can choose your pybot's speed, the thickness of his armour and many other
+things... but each of these things has a "cost", and dependig on the total cost
+of your pybot it could not be admitted to fight into the game... the maximum
+pybot cost available for a game is actually configurable, but it's not really
+fair to compete with lower-cost pybots. Or maybe it would be great to defeat
+higher-cost pybots. :-)
+
+
+BASIC RULES
+
+Pybots will fight each other inside an arena. A single round or a tournament
+can be played.
+
+A tournament is played in a set of arenas; in each one a number of rounds will
+be fought. At the end of the tournament the bots who won most round wins the
+tournament.
+
+An arena is a bidimensional space defined by dimensions (width, height), and
+wall power, which is the strength of the hit received by pybots when they try
+to move outside the arena.
+
+At the beginning of the tournament (or before the single round takes place)
+pybots are loaded and a check is made to see if every pybot is correctly
+implemented (i.e. it correctly defines all the hardware variables and it
+does not exceed the maximum cost available for the tournament/round).
+A Pybot which fails to pass this check will be disqualified and will not
+compete.
+
+At the beginning of each round pybots are placed randomly in the arena.
+Then a loop begins; in every "step" the engine let each pybot to define how
+it is moving, how it fires shoots and which direction his scanner is looking.
+
+In the step other actions are performed by the engine: it checks if some shot
+hits some pybot (each pybot is immune to his own shots), it checks if some
+pybots collided with each other or tries to move outside the arena.
+
+In case of collision each pybot involved received an hit (whose strength
+depends from the arena wall power or the other pybot's armour) and is
+"pushed back" to the same position he occupied the previous step.
+
+When a shots hits (is inside) a pybot the shot disappears and the pybot
+receives an hit whose strength is determined by the power of the shot.
+
+When a pybot receives a hit the value [strength of hit - pybot's armour],
+if positive, is added to the total damage of the pybot. When the total
+damage reaches the maximum damage that can be absorbed by the pybot the
+pybot "dies" and is removed from the arena.
+
+When a pybot generates an exception it receives an hit of strength 1000 (it
+will be of course destroyed, but if you want you can tune this value by
+modifying the EXCEPTION_COST variable in vars.py)
+
+A round ends:
+
+ - after 1000 steps (this limit can be tuned by setting ROUND_DURATION in
+   vars.py)
+or
+ - when there are no pybots remaining
+or
+ - when there is only one pybot remaining and no shots from other pybot are
+   inside the arena
+
+A pybot wins the round if it is still alive (the damage inflicted has not
+reached the maximum damage level of the pybot).
+
+In case of tournament the pybot who wins more rounds is the winner of the
+tournament.
+
+NB: Tournaments are the real test for a pybot: single rounds can be
+determined by just luck; only in a tournament with at least 100 rounds
+you can judge if a pybot is really good. Single rounds can be useful to
+study and debug a pybot and try to improve it.
+
+
+RUNNING PYBOTS
+
+To run pybots you need python installed. Basically in the home directory
+there are three runnable python scripts.
+
+The script "check_cost.py" attempts to load all available pybots and
+prints out the each one's total cost.
+
+Then "single.py" and "tournament.py" can be used to run the game.
+The first one can be launched with three parameters which will be used
+respectively as width, height and wall strength of the arena (the wall
+strength is the hit received by pybots who try to move outside the arena).
+The script "tournament.py" runs a set of rounds into four different arenas;
+the number of rounds that will be played in each arena can be passed as
+first argument.
+ 
+You may want to adjust some values in the vars.py script before running
+the game. There you can enable/disable the gui, adjust the verbosity level,
+change the folder to look for pybots, set the maximum acceptable pybot cost,
+the number of steps in a round, etc...
+
+
+CREATING PYBOTS
+
+To create a pybot you have to create a .py file. The name of the file
+(excluding the ".py" extension) will be the name of your bot.
+
+In this file you can import only random and math from python modules. You can
+also import util which is a pybots module containing some utility functions.
+If you try to import anything else your pybot will fail to load.
+
+Inside this file you have to declare a python class named "bot".
+This class must define the following (integer) variabiles which will define
+the hardware of the pybot:
+
+ size (5 - 15): each pybot is round-shaped, this determines the radius of
+                the shape; bigger pybots are easier to hit.
+ armour (0 - 3): each time the pybot is hit this value is subtracted from
+                 the damage
+ maxdamage (10 - 15): the total damage that can be absorbed by the pybot
+                      before being eliminated
+ maxspeed (1 - 5): the maximum speed at which the pybot can move
+ shotpower (1 - 5): the total power of shots that can be fired each round
+ shotspeed (3 - 10): the speed of the shots
+ scanradius (1 - 9): the width of the scanner
+
+
+Besides, you may define a set_arena_data function, which (if defined) will
+be called at the beginning of each fight to provide the pybot some info
+about the current round parameters (i.e. the arena size, the duration of the
+round, etc...).
+
+You have also to define a routine calles "act" which will be called every
+step.
+
+This routine will be called with just one parameter, which will be a tuple
+of (name, pos, damage, scanresult), where:
+ - name is the name of the pybot;
+ - pos is the current position in the arena expressed as (x,y) tuple;
+ - damage is the current total damage of the pybot;
+ - scanresult is a list of (name, pos, direction, speed) tuples; each tuple
+   represents a pybot that has been found with the last scan request, and
+   contains its name, its position (always an (x,y) tuple) and its current
+   travelling direction and speed.
+
+The return value of this function must be a tuple of four elements, which
+must be:
+ - the direction, expressed in degrees (float or int value from 0 to 360)
+   to which the pybot will travel for the next step;
+ - the speed (integer from 0 to the maximum speed of the pybot) ant which
+   the pybot will travel for the next step;
+ - the scanning direction for the next step (see SCANNING below);
+ - a list (eventually empty) which contains one element for every shot
+   fired by the pybot for the next step (see SHOOTING below).
+
+Be careful of the length of the tuples and the type contained, because if
+your routine causes an exception (this includes the applying of the return
+value which actually happens outside of the act function) your pybot will
+receive an hit of strength vars.EXCEPTION_COST (the default value is 1000).
+
+When you have created your pybot you can put the file with a ".py" extension
+in the "bots" folder and run pybots in single round or tournament mode.
+
+
+SCANNING
+
+Each bot every step can scan in a direction. The scanned area etends clockwise
+and counter-clockwise from that direction by a number of degrees determined
+by the scanradius property of the pybot (actually 10 degrees for each
+scanradius point).
+
+Each pybot which fall in the scanned area will generate an item in the fourth
+parameter of the next act function call, as specified above.
+
+
+SHOOTING
+
+To fire a shot you can add an element to the list returned by the act
+function. This element must be a (direction, speed, power) tuple.
+
+Every step the shot advances in the direction and at the speed specified
+by the tuple, until it exits the arena area or it hits a pybot.
+In order to a shot to hit its position must be inside the pybot.
+A shot can never hit the pybot who fired the shot.
+
+NB: Since every step the engine performs movements for all the pybots and all
+the shots and THEN checks for hits, it is possible for fast and small bots
+to go past really fast shots.
+
+
+BASIC EXAMPLE
+
+This is a (really basic) example of how a pybot file should be:
+
+--------------------------------------------------------------------------------
+#!/usr/bin/env python
+
+class bot:
+	size = 9
+	armour = 1
+	maxdamage = 10
+	maxspeed = 2
+	shotpower = 4
+	shotspeed = 4
+	scanradius = 3
+
+	def set_arena_data(self, data):
+		self.arenaw = data['ARENA_W']
+		self.arenah = data['ARENA_H']
+		self.walldmg = data['ARENA_WALL_DMG']
+		self.round_duration = data['ROUND_DURATION']
+
+	def act(self, data):
+		(name, pos, dmg, scanresult) = data
+		return (0, 0, 0, [])
+
+--------------------------------------------------------------------------------
+
+This pybot just stants still and does nothing, but can be the skeleton of
+your own pybot. More examples can be found in the "bots" folder.
+
+
+NOTES
+
+This is how coordinates and directions are mapped on the arena:
+
+(0,0) --------------- (W,0)
+  |                     |
+  |         270         |
+  |          ^          |
+  |          |          |
+  |   180 <--+--> 0     |
+  |          |          |
+  |          v          |
+  |         90          |
+  |                     |
+(0,H) --------------- (W,H)
+
+[W and H are the arena width and height, respectively]
+
