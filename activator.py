@@ -41,6 +41,13 @@ def bot_is_inactive(name):
     return any(bot == name for bot in filter_inactive_bots())
 
 
+def change_file_extension(file, new_ext):
+    old_path = os.path.abspath(file)
+    name, _ = os.path.splitext(old_path)
+    new_path = os.path.join(os.path.dirname(old_path), f"{name}.{new_ext}")
+    os.rename(old_path, new_path)
+
+
 def activate_bot(name):
     if bot_is_active(name):
         raise ValueError(f"{name} is already active")
